@@ -1,0 +1,21 @@
+#Ansible-playbook install register etc host
+---
+- hosts: "dr-k8s-master, dr-k8s-worker"
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+
+  tasks:
+    - name: update etc hosts
+      blockinfile:
+        path: "/etc/hosts"
+        insertafter: "lb2.lab"
+        block: |
+                #site drc k8s
+                172.16.11.115	dr-k8s-master1.lab
+                172.16.11.116	dr-k8s-master2.lab
+                172.16.11.117	dr-k8s-master3.lab
+                172.16.11.118	dr-k8s-worker1.lab
+                172.16.11.119	dr-k8s-worker2.lab
+                172.16.11.120	dr-k8s-worker3.lab
+                172.16.11.100   dr-k8s-vip.lab

@@ -1,0 +1,17 @@
+- hosts: dr-k8s-master2,dr-k8s-master3
+  become: yes
+ 
+  tasks: 
+    - name: Join Master Control Plane Node
+      shell: |
+              kubeadm reset -f
+              kubeadm join dr-k8s-vip.lab:8443 --token hw4bxa.azadaxz9nwcsgxwo --discovery-token-ca-cert-hash sha256:43c7cb4949f027074a910057762138c433a6491f2873dde74da5f3087210616a --control-plane --certificate-key 9ea8b797f7e4f61c97f120b0b52857e945afd62fdfaa64c01dfa9e9fc3192443 --cri-socket /run/crio/crio.sock
+
+- hosts: dr-k8s-worker
+  become: yes
+
+  tasks:
+    - name: Join worker to master
+      shell : |
+              kubeadm reset -f
+              kubeadm join dr-k8s-vip.lab:8443 --cri-socket /run/crio/crio.sock --token hw4bxa.azadaxz9nwcsgxwo --discovery-token-ca-cert-hash sha256:43c7cb4949f027074a910057762138c433a6491f2873dde74da5f3087210616a

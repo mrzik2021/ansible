@@ -1,0 +1,13 @@
+---
+- hosts: mgmt-k8s-worker2
+  become: yes
+  tasks:
+    - name: install chrony
+      command: apt install -y chrony
+
+    - name: edit chrony.conf
+      ansible.builtin.lineinfile:
+        path: /etc/chrony/chrony.conf
+        regexp: '^pool'
+        insertafter: '^http://www.pool.ntp.org/join.html'
+        line: '#'

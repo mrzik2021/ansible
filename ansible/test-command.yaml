@@ -1,0 +1,5 @@
+- hosts: dr-k8s-master1
+  become: yes
+  tasks:
+          - name: Test Command CURL
+            command : curl www.google.com

@@ -1,0 +1,15 @@
+#Ansible-playbook install k8s
+---
+- hosts: "dr-k8s-master, dr-k8s-worker"
+  remote_user: compnet
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+
+  tasks:
+          - name: Update Repo
+            shell: |
+                   dnf clean all
+                   dnf repolist

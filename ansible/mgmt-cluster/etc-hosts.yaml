@@ -1,0 +1,15 @@
+#Ansible-playbook install register etc host
+---
+- hosts: "mgmt-k8s-master, mgmt-k8s-worker"
+  become: yes
+
+  tasks:
+    - name: update etc hosts
+      blockinfile:
+        path: "/etc/hosts"
+        insertafter: "localhost"
+        block: |
+                #site mgmt k8s
+                172.16.4.110	mgmt-k8s-master1.lab
+                172.16.4.111	mgmt-k8s-worker1.lab
+                172.16.4.112	mgmt-k8s-worker2.lab

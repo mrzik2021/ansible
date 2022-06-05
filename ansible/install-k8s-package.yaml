@@ -1,0 +1,95 @@
+#Ansible-playbook install k8s
+---
+- hosts: "dr-k8s-master, dr-k8s-worker"
+  remote_user: compnet
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+
+  tasks:
+     - name: install iproute-tc
+       command: sudo dnf install -y iproute-tc
+
+     - name: disable rhel firewall
+       shell: |
+               sudo systemctl stop firewalld
+               sudo systemctl disable firewalld
+
+     - name: disable selinux
+       shell: |
+               sudo setenforce 0
+               sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+     - name: create k8s module
+       file:
+         path: "/etc/modules-load.d/k8s.conf"
+         state: "touch"
+
+     - name: Add conf module for k8s
+       blockinfile:
+         path: "/etc/modules-load.d/k8s.conf"
+         block: |
+               overlay
+               br_netfilter
+
+     - name: modprobe
+       shell: |
+               sudo modprobe overlay
+               sudo modprobe br_netfilter
+
+
+     - name: Set system configurations for Kubernetes networking
+       file:
+         path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+         state: "touch"
+
+     - name: Add conf for sysctl kubernetes
+       blockinfile:
+         path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+         block: |
+                net.bridge.bridge-nf-call-iptables = 1
+                net.ipv4.ip_forward = 1
+                net.bridge.bridge-nf-call-ip6tables = 1
+
+     - name: Apply new settings
+       command: sudo sysctl --system
+
+     - name: install CRI-O container runtime
+       shell: |
+               export VERSION=1.22.1
+               export BaseOS=CentOS_8
+               sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$BaseOS/devel:kubic:libcontainers:stable.repo
+               sudo curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/1.22:/$VERSION/$BaseOS/devel:kubic:libcontainers:stable:cri-o:1.22:$VERSION.repo
+               sudo yum repolist
+               sudo yum install cri-o cri-tools libseccomp -y
+               sudo systemctl enable --now crio
+
+     - name: disable swap
+       shell: |
+               sudo swapoff -a
+               sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+     - name: Create kubernetes repo file
+       file:
+         path: "/etc/yum.repos.d/kubernetes.repo"
+         state: "touch"
+
+     - name: Add k8s Source Repository
+       blockinfile:
+         path: "/etc/yum.repos.d/kubernetes.repo"
+         block: |
+                 [kubernetes]
+                 name=Kubernetes
+                 baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64/
+                 enabled=1
+                 gpgcheck=1
+                 repo_gpgcheck=1
+                 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+     - name: install kubernetes
+       shell: |
+               sudo dnf repolist -y
+               sudo dnf install -y kubelet-1.22.1-0 kubeadm-1.22.1-0 kubectl-1.22.1-0
+               sudo systemctl enable kubelet

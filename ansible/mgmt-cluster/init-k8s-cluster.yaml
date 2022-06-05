@@ -1,0 +1,39 @@
+---
+- hosts: mgmt-k8s-master
+  become: yes
+  tasks:
+    - name: initialize cluster
+      shell: |
+              kubeadm reset -f
+              kubeadm init
+
+    - name: create .kube directory
+      file:
+        path: /home/compnet/.kube
+        state: directory
+        mode: 0755
+
+    - name: copies admin.conf to user's kube config
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/compnet/.kube/config
+        remote_src: yes
+        owner: compnet
+
+    - name: install Pod network
+      become: yes
+      become_user: compnet
+      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      args:
+        chdir: $HOME
+
+    - name: print join command
+      command: kubeadm token create --print-join-command > /home/compnet/worker-join.txt
+
+    - name: copy join command text files
+      synchronize:
+        src: /home/compnet/worker-join.txt
+        dest: /home/compnet/worker-join.txt
+        mode: pull
+      delegate_to: mgmt-k8s-worker
+
