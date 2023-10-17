@@ -1,0 +1,18 @@
+- name: create logvol message
+  hosts: all
+  tasks:
+    - name: Remove the logical volume.
+      lvol:
+        vg: vg0
+        lv: lv0
+        state: absent
+        force: true
+    - name: Remove a volume group
+      lvg:
+        vg: vg0
+        state: absent
+    - name: create partition
+      parted:
+        device: /dev/sdb
+        number: 1
+        state: absent
