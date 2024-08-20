@@ -1,0 +1,6 @@
+---
+- import_playbook: 00.join-ntp-server.yaml
+- import_playbook: 01.setup-etc-hosts.yaml
+- import_playbook: 02.setup-host-repo.yaml
+- import_playbook: 03.install-package.yaml
+- import_playbook: 04.init-cluster.yaml

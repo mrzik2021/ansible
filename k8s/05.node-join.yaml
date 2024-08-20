@@ -1,0 +1,26 @@
+- name: JOIN CLUSTER
+  hosts: rhel-k8s-master2,rhel-k8s-master3
+  become: yes
+ 
+  tasks:
+    - name: Join Master Control Plane Node
+      shell: |
+              kubeadm reset -f
+              kubeadm join rhel-k8s-vip.lab:8443 \
+              --token lfgemp.zuq6pa2crxjgv6yo \
+              --discovery-token-ca-cert-hash sha256:3828fb4a57fa9a99fd8e4fae2c5352303cd27b9d3dc066ec81b3e166edfbe9ee \
+              --control-plane \
+              --certificate-key 17e6f57f9d3ae129eed7fff8d210781445342407a356412939906ff5ae808028 \
+              --cri-socket /run/crio/crio.sock
+
+- hosts: rhel-k8s-worker
+  become: yes
+
+  tasks:
+    - name: Join worker to master
+      shell : |
+              kubeadm reset -f
+              kubeadm join rhel-k8s-vip.lab:8443 \
+              --cri-socket /run/crio/crio.sock \
+              --token lfgemp.zuq6pa2crxjgv6yo \
+              --discovery-token-ca-cert-hash sha256:3828fb4a57fa9a99fd8e4fae2c5352303cd27b9d3dc066ec81b3e166edfbe9ee

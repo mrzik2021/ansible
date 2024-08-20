@@ -1,0 +1,10 @@
+apiVersion: cilium.io/v2
+kind: CiliumEndpointSelector
+metadata:
+  name: hubble-ui-announcement
+  namespace: kube-system
+spec:
+  selection:
+    anyMatch:
+      - matchLabels:
+          k8s-app: hubble-ui

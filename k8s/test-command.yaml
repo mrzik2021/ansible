@@ -1,5 +1,22 @@
-- hosts: dr-k8s-master1
+- hosts: rhel-k8s-master1
   become: yes
+  vars:
+    KUBE_VER: v1.311212
   tasks:
-          - name: Test Command CURL
-            command : curl www.google.com
+    - name: Echo my_env_var
+      shell: "echo $MY_ENV_VARIABLE"
+      environment:
+        MY_ENV_VARIABLE: v1.31
+    
+    - name: create file basedon MY_ENV_VARIABLE
+      environment:
+        KUBE_VER: v1.311212
+      blockinfile:
+        path: "/root/test1.txt"
+        block: |
+              {{ KUBE_VER }}
+              test1
+              test2
+              EOF
+              
+      

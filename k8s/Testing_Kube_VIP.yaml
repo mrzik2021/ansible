@@ -1,0 +1,160 @@
+---
+- name: CONFIGURE KUBE-VIP
+  hosts: rhel-k8s-master1
+  become: yes
+  tasks:
+    - name: clean existing installation
+      command: kubeadm reset -f
+
+    - name: Add Kube-VIP Static pod manifest
+      file:
+        path: /etc/kubernetes/manifests/kube-vip.yaml
+        state: touch
+    
+    - name: Insert manifest to kube-vip.yaml
+      blockinfile:
+        path: /etc/kubernetes/manifests/kube-vip.yaml
+        block: 
+              |
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                creationTimestamp: null
+                name: kube-vip
+                namespace: kube-system
+              spec:
+                containers:
+                - args:
+                  - manager
+                  env:
+                  - name: vip_arp
+                    value: "true"
+                  - name: port
+                    value: "6443"
+                  - name: vip_nodename
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: spec.nodeName
+                  - name: vip_interface
+                    value: ens192
+                  - name: cp_enable
+                    value: "true"
+                  - name: cp_namespace
+                    value: kube-system
+                  - name: vip_ddns
+                    value: "false"
+                  - name: svc_enable
+                    value: "false"
+                  - name: vip_leaderelection
+                    value: "true"
+                  - name: vip_leaseduration
+                    value: "5"
+                  - name: vip_renewdeadline
+                    value: "3"
+                  - name: vip_retryperiod
+                    value: "1"
+                  - name: address
+                    value: 172.16.11.188
+                  image: ghcr.io/kube-vip/kube-vip:v0.8.1
+                  imagePullPolicy: IfNotPresent
+                  name: kube-vip
+                  resources: {}
+                  securityContext:
+                    capabilities:
+                      add:
+                      - NET_ADMIN
+                      - NET_RAW
+                      - SYS_TIME
+                  volumeMounts:
+                  - mountPath: /etc/kubernetes/admin.conf
+                    name: kubeconfig
+                hostAliases:
+                - hostnames:
+                  - kubernetes
+                  ip: 127.0.0.1
+                hostNetwork: true
+                volumes:
+                - hostPath:
+                    path: /etc/kubernetes/super-admin.conf
+                  name: kubeconfig
+              status: {}
+
+- name: KUBERNETES CLUSTER initialize
+  hosts: rhel-k8s-master1
+  become: yes
+  tasks:
+    - name: initialize the cluster
+      shell: |
+              kubeadm init --pod-network-cidr=170.70.0.0/16 --control-plane-endpoint "rhel-k8s-vip.locallab:6443" --upload-certs --cri-socket /run/crio/crio.sock --skip-phases=addon/kube-proxy 2>&1 > $HOME/kubernetes_initialize.log
+      # args:
+      #   chdir: $HOME
+      #   creates: cluster_initialized.txt
+
+    # - name: Get the token for joining the worker nodes
+    #   shell: kubeadm token create  --print-join-command > /root/worker-join.sh
+    - name: get token from kubernetes_initialize.log
+      shell: |
+              grep " --token" $HOME/kubernetes_initialize.log | awk '{print $5}' | uniq
+      register: kubeadm_token
+
+    - name: get discovery token hash from kubernetes_initialize.log
+      shell: |
+              grep "token-ca-cert-hash" $HOME/kubernetes_initialize.log | awk '{print $2}' | uniq
+      register: kubeadm_token_hash
+    
+    - name: get certificate key from kubernetes_initialize.log
+      shell: |
+              grep " --certificate-key" $HOME/kubernetes_initialize.log | awk '{print $3}' | uniq
+      register: kubeadm_key
+    # - debug:
+    #     var: kubeadm_key.stdout
+    # - name: create variable based on register
+    #   set_fact: 
+    #     kubeadm_token: "{{ kubeadm_token.stdout }}"
+    #     kubeadm_token_hash: "{{kubeadm_token_hash.stdout}}"
+    #     kubeadm_key: "{{kubeadm_key.stdout}}"
+
+- name: JOIN Control Plane Node
+  hosts: rhel-k8s-master2,rhel-k8s-master3
+  become: yes
+  tasks:
+    - name: clean existing installation
+      command: kubeadm reset -f
+
+    - name: create variable based on master 1
+      set_fact: 
+        kubeadm_token: "{{hostvars['rhel-k8s-master1']['kubeadm_token']['stdout']}}"
+        kubeadm_token_hash: "{{hostvars['rhel-k8s-master1']['kubeadm_token_hash']['stdout']}}"
+        kubeadm_key: "{{hostvars['rhel-k8s-master1']['kubeadm_key']['stdout']}}"
+    # - debug:
+    #     var: kubeadm_token
+    # - name: copy admin configuration from rhel-k8s-master1
+    #   fetch:
+    #     src: rhel-k8s-master1.locallab:/etc/kubernetes/super-admin.conf
+    #     dest: /etc/kuberetes/
+    - name: Join Master Control Plane Node
+      shell: |
+              kubeadm join rhel-k8s-vip.locallab:6443 \
+              --token {{kubeadm_token}} \
+              --discovery-token-ca-cert-hash {{kubeadm_token_hash}} \
+              --control-plane \
+              --certificate-key {{kubeadm_key}} \
+              --cri-socket /run/crio/crio.sock
+
+- name: JOIN Worker Node
+  hosts: rhel-k8s-worker
+  become: yes
+  tasks:
+    - name: clean existing installation
+      command: kubeadm reset -f
+    - name: create variable based on master 1
+      set_fact: 
+        kubeadm_token: "{{hostvars['rhel-k8s-master1']['kubeadm_token']['stdout']}}"
+        kubeadm_token_hash: "{{hostvars['rhel-k8s-master1']['kubeadm_token_hash']['stdout']}}"
+   
+    - name: Join worker to master
+      shell : |
+              kubeadm join rhel-k8s-vip.locallab:6443 \
+              --cri-socket /run/crio/crio.sock \
+              --token {{kubeadm_token}} \
+              --discovery-token-ca-cert-hash {{kubeadm_token_hash}}

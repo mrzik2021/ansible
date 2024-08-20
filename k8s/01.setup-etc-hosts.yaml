@@ -1,0 +1,22 @@
+#Ansible-playbook install register etc host
+---
+- name: HOSTS FILES CONFIGURATION
+  hosts: "all"
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+
+  tasks:
+    - name: update etc hosts
+      blockinfile:
+        path: "/etc/hosts"
+        insertafter: "127.0.0.1"
+        block: |
+                #site lab k8s
+                172.16.11.115	rhel-k8s-master1.locallab rhel-k8s-master1
+                172.16.11.116	rhel-k8s-master2.locallab rhel-k8s-master2
+                172.16.11.117	rhel-k8s-master3.locallab rhel-k8s-master3
+                172.16.11.118	rhel-k8s-worker1.locallab rhel-k8s-worker1
+                172.16.11.119	rhel-k8s-worker2.locallab rhel-k8s-worker2
+                172.16.11.120	rhel-k8s-worker3.locallab rhel-k8s-worker3
+                172.16.11.188 rhel-k8s-vip.locallab rhel-k8s-vip

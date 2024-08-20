@@ -1,0 +1,22 @@
+---
+- name: NTP CONFIGURATION
+  hosts: all
+  become: yes
+  tasks:
+    - name: install chrony
+      yum: 
+        name: chrony
+        state: present
+
+    - name: edit chrony.conf
+      lineinfile:
+        path: /etc/chrony.conf
+        regexp: '^pool'
+        insertafter: '^http://www.pool.ntp.org/join.html'
+        line: 'pool time.cloudflare.com iburst'
+
+    - name: start and enable chronyd services
+      systemd:
+        name: chronyd
+        state: started
+        enabled: true

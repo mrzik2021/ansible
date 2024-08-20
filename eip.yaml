@@ -1,0 +1,9 @@
+apiVersion: network.kubesphere.io/v1alpha2
+kind: Eip
+metadata:
+  name: my-eip-pool
+spec:
+  address: 172.16.11.140-172.16.11.160
+  # Optional parameters (if supported by your OpenELB version)
+  protocol: layer2  # Protocol (TCP or UDP) for the pool (optional)
+  interface: ens192  # Interface name for the pool (optional)
