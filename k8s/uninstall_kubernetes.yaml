@@ -1,0 +1,38 @@
+#Ansible-playbook install k8s
+---
+- hosts: "all"
+  remote_user: compnet
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+
+  tasks:
+        - name: reset kubeadm
+          command: kubeadm reset -f
+          ignore_errors: true
+
+        - name: Uninstall CRI-O and Podman
+          yum :
+            name:
+              - kubeadm
+              - kubectl
+              - kubelet
+              - kubernetes-cni
+              - kube*
+              - cri-o 
+              - cri-tools
+              - podman
+              - runc
+              - containernetworking-plugins
+            state: absent
+        
+        - name: remove podman interface
+          shell:
+                |
+                nmcli con del cni0
+                nmcli con del cni-podman0
+                ip link del cni0
+                ip link del cni-podman0
+          ignore_errors: true

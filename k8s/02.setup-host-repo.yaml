@@ -1,0 +1,36 @@
+#Ansible-playbook install k8s
+---
+- name: HOST REPOSITORY CONFIGURATION
+  hosts: all
+  remote_user: compnet
+  become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
+  connection: ssh
+
+  tasks:
+          - name: install redhat local baseos repository
+            yum_repository:
+              file: local-lab
+              name: baseos
+              description: Redhat Local Repository BaseOS
+              baseurl: http://172.16.4.249/BaseOS/
+              gpgcheck: true
+              gpgkey: http://172.16.4.249/RPM-GPG-KEY-redhat-release
+            become: true
+
+          - name: install redhat local appstream repository
+            yum_repository:
+              file: local-lab
+              name: appstream
+              description: Redhat Local Repository AppStream
+              baseurl: http://172.16.4.249/AppStream/
+              gpgcheck: true
+              gpgkey: http://172.16.4.249/RPM-GPG-KEY-redhat-release
+            become: true
+
+          - name: Update Repo
+            shell: |
+                   dnf clean all
+                   dnf repolist

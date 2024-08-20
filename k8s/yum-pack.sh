@@ -1,0 +1,4 @@
+ansible -kK -b all -m shell -a 'mv /etc/yum.repos.d/local.repo /etc/yum.repos.d/local.repo.bak'
+ansible -kK -b all -m shell -a 'rm /etc/yum.repos.d/EX294.repo /etc/yum.repos.d/EXX294.repo'
+# ansible -kK -b all -m yum_repository -a 'name=Local description="Local BaseOS Repository" baseurl=http://172.16.4.249/BaseOS gpgkey=http://172.16.4.249/RPM-GPG-KEY-redhat-release enabled=1 gpgcheck=1'
+# ansible -kK -b all -m yum_repository -a 'name=EXX294 description="Local AppStream Repository" baseurl=http://172.16.4.249/AppStream gpgkey=http://172.16.4.249/RPM-GPG-KEY-redhat-release enabled=1 gpgcheck=1'

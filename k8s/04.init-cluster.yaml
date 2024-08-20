@@ -1,0 +1,47 @@
+#ansible playbook init cluster
+- name: CLUSTER CREATION
+  hosts: rhel-k8s-master1
+  become: yes
+  tasks:
+    - name: initialize the cluster
+      shell: |
+              kubeadm reset -f
+              kubeadm init --pod-network-cidr=10.18.0.0/16 --control-plane-endpoint "rhel-k8s-vip.compnete.local:6443" --upload-certs --cri-socket /run/crio/crio.sock --kubernetes-version 1.30.1 --skip-phases=addon/kube-proxy 2>&1 > /root/kubernetes_initialize.log
+      # args:
+      #   chdir: $HOME
+      #   creates: cluster_initialized.txt
+
+    - name: Get the token for joining the worker nodes
+      shell: kubeadm token create  --print-join-command > /root/worker-join.sh
+
+    # - name: Edit file /root/worker-join.sh
+    #   blockinfile:
+    #     path: /root/worker-join.sh
+    #     insertbefore: "kubeadm"
+    #     block: |
+    #             #!/bin/bash
+
+    # - name: 
+      # register: kubernetes_join_command
+
+    # - name: create .kube directory
+    #   become: yes
+    #   become_user: kube
+    #   file:
+    #     path: $HOME/.kube
+    #     state: directory
+    #     mode: 0755
+
+    # - name: copies admin.conf to user's kube config
+    #   copy:
+    #     src: /etc/kubernetes/admin.conf
+    #     dest: /home/kube/.kube/config
+    #     remote_src: yes
+    #     owner: kube
+
+    # - name: install Pod network
+    #   become: yes
+    #   become_user: kube
+    #   shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml 
+    #   args:
+    #     chdir: $HOME

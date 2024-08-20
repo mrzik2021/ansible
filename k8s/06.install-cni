@@ -1,0 +1,5 @@
+helm install cilium cilium/cilium --version 1.15.5 \
+    --namespace kube-system \
+    --set kubeProxyReplacement=true \
+    --set k8sServiceHost=rhel-k8s-vip.lab \
+    --set k8sServicePort=8443
